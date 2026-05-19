@@ -650,7 +650,8 @@ with ui.tags.div(id="mainContent", class_="main-content"):
                             "": "-",
                             "1A": "Import raw data file(s)",
                             "1B": "Load Bibliometrix file(s)",
-                            "1C": "Use a sample dataset"
+                            "1C": "Use a sample dataset",
+                            "1D": "Fetch from API (OpenAlex / PubMed)"
                         },
                     )
 
@@ -711,6 +712,17 @@ with ui.tags.div(id="mainContent", class_="main-content"):
                             ui.input_action_button("start_button", "Start", icon=ICONS["play"])
                             ui.markdown("Select a predefined sample dataset for testing purposes.")
 
+                        elif input.select() == "1D":
+                            ui.input_text("api_query", "Search query", placeholder="e.g., machine learning bibliometrics")
+                            ui.input_select(
+                                "api_source",
+                                "API Source:",
+                                {"openalex": "OpenAlex", "pubmed_api": "PubMed API"},
+                            )
+                            ui.input_numeric("api_max_results", "Max records", value=100, min=10, max=1000)
+                            ui.input_action_button("start_button", "Fetch & Analyze", icon=ICONS["play"])
+                            ui.p("Retrieve bibliographic records directly from OpenAlex or PubMed.", style="color: gray; font-size: 10px; margin-top: -20px;")
+
                         else:
                             ui.p("Please select a valid action to begin managing your data.", style="color: gray;")
                             ui.p("Follow the instructions below to manage your data efficiently:")
@@ -748,18 +760,31 @@ with ui.tags.div(id="mainContent", class_="main-content"):
 
                     if database == "Sample":
                         data = df.set(pd.read_excel("sources/samples/sample.xlsx"))
-                        reset_all_analyses()  # Reset analysis results when sample is loaded
+                        reset_all_analyses()
 
-                    @render.express()
-                    @reactive.event(input.Dataset)
-                    def show_data():
-                        text = get_data(input, database, df, reset_all_analyses)
-                        text
+                    if input.select() == "1D":
+                        try:
+                            text = get_data(input, database, df, reset_all_analyses)
+                            text
+                        except Exception as _e:
+                            ui.div(
+                                ui.h5("API fetch error:", style="color:red;"),
+                                ui.p(str(_e), style="color:red;"),
+                            )
+                    else:
+                        @render.express()
+                        @reactive.event(input.Dataset)
+                        def show_data():
+                            text = get_data(input, database, df, reset_all_analyses)
+                            text
+
                     ui.HTML(init_itables())
 
                     @render.ui
-                    @reactive.event(input.start_button)
                     def show_table():
+                        data = df.get()
+                        if data is None or (hasattr(data, "empty") and data.empty):
+                            return ui.p("")
                         table_ui, _, _ = get_table(database, df)
                         return table_ui
 

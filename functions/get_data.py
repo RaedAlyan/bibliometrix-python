@@ -14,8 +14,35 @@ def get_data(input, database, df, reset_callback=None):
     Returns:
         A message indicating the status of the data upload.
     """
+    # 1D — API retrieval (no file required)
+    if input.select() == "1D":
+        try:
+            query = input.api_query() if hasattr(input, "api_query") else ""
+            source = input.api_source() if hasattr(input, "api_source") else "openalex"
+            max_results = int(input.api_max_results()) if hasattr(input, "api_max_results") else 100
+            if not query.strip():
+                text = ui.div(ui.h5("Please enter a search query.", style="color: orange;"))
+            else:
+                from www.services.etl.pipeline import run_api_pipeline
+                result_df, _, _ = run_api_pipeline(query, platform=source, max_records=max_results)
+                df.set(result_df)
+                if reset_callback:
+                    reset_callback()
+                source_label = "PubMed API" if source == "pubmed_api" else "OpenAlex"
+                text = ui.p(
+                    f"{source_label} query '{query}' completed. "
+                    f"Retrieved {len(result_df)} records "
+                    f"({result_df.shape[1]} columns)."
+                )
+        except Exception as e:
+            text = ui.div(
+                ui.h5("Error fetching data from API:", style="color: red;"),
+                ui.p(str(e), style="color: red;"),
+            )
+        return text
+
     file: list[FileInfo] | None = input.Dataset()
-    
+
     if file is None:
         text = ui.h5("Please select a file to begin importing your data.")
 

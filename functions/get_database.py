@@ -33,5 +33,15 @@ def get_database(input):
     
     elif input.select() == "1C":  # Sample database
         database = "Sample"
-    
+
+    elif input.select() == "1D":  # API retrieval
+        try:
+            source = input.api_source()
+        except Exception:
+            source = "openalex"
+        database = "PubMed API" if source == "pubmed_api" else "OpenAlex"
+
+    else:
+        database = "Unknown"
+
     return database

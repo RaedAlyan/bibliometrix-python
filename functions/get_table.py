@@ -81,6 +81,9 @@ def get_table(database, df, dpi=300, filter=False, modal=True):
     # Retrieve the data from the DataFrame
     data = df.get()
 
+    if data is None or (hasattr(data, "empty") and data.empty):
+        return ui.p("No data loaded yet."), "", None
+
     table_html = ""
     fig = None
     if not filter:
